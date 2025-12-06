@@ -214,6 +214,7 @@ LongNumber &LongNumber::operator=(const char *const str)
 	return *this = tmp;
 }
 
+// Лишнее? Почему?
 LongNumber &LongNumber::operator=(const LongNumber &x)
 {
 	if (this == &x)
@@ -337,6 +338,7 @@ LongNumber LongNumber::operator+(const LongNumber &x) const
 	return result;
 }
 
+// Как реализовать по-другому? Намного проще?
 LongNumber LongNumber::operator-(const LongNumber &x) const
 {
 	if (*this == x)

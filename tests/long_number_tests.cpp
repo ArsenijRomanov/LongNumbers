@@ -1090,6 +1090,7 @@ TEST(LongNumberMultiplication, OneTimesVeryLong)
 	EXPECT_EQ(ToString(p2), s);
 }
 
+// a / b, a / (-b), -a / b, -a / (-b)
 // ----------------------------------------------------------
 // Division
 // ----------------------------------------------------------
