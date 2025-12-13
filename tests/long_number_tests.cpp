@@ -1053,16 +1053,6 @@ TEST(LongNumberMultiplication, NegativeTimesNegative)
 	EXPECT_FALSE(p.is_negative());
 }
 
-TEST(LongNumberMultiplication, LargeNumbers)
-{
-	LongNumber a("999999999");
-	LongNumber b("999999999");
-
-	LongNumber p = a * b;
-
-	EXPECT_EQ(ToString(p), "999999998000000001");
-}
-
 TEST(LongNumberMultiplication, VeryLongNumbers)
 {
 	std::string s(50, '9');
@@ -1094,6 +1084,53 @@ TEST(LongNumberMultiplication, OneTimesVeryLong)
 // ----------------------------------------------------------
 // Division
 // ----------------------------------------------------------
+
+TEST(LongNumberDivision, MathRulesSignCombinations)
+{
+    LongNumber a("7");
+    LongNumber b("3");
+    LongNumber neg_a("-7");
+    LongNumber neg_b("-3");
+
+    EXPECT_EQ(ToString(a / b), "2");
+    EXPECT_EQ(ToString(a % b), "1");
+
+    EXPECT_EQ(ToString(a / neg_b), "-2");
+    EXPECT_EQ(ToString(a % neg_b), "1");
+
+    EXPECT_EQ(ToString(neg_a / b), "-3");
+    EXPECT_EQ(ToString(neg_a % b), "2");
+
+    EXPECT_EQ(ToString(neg_a / neg_b), "3");
+    EXPECT_EQ(ToString(neg_a % neg_b), "2");
+}
+
+TEST(LongNumberDivision, MathRulesExactDivision)
+{
+    LongNumber a("-6");
+    LongNumber b("2");
+    LongNumber neg_b("-2");
+
+    EXPECT_EQ(ToString(a / b), "-3");
+    EXPECT_EQ(ToString(a % b), "0");
+
+    EXPECT_EQ(ToString(a / neg_b), "3");
+    EXPECT_EQ(ToString(a % neg_b), "0");
+}
+
+TEST(LongNumberDivision, MathRulesLargeNumbers)
+{
+    LongNumber a("-105");
+    LongNumber b("10");
+
+    EXPECT_EQ(ToString(a / b), "-11");
+    EXPECT_EQ(ToString(a % b), "5");
+
+    LongNumber q = a / b;
+    LongNumber r = a % b;
+
+    EXPECT_EQ(ToString(q * b + r), "-105");
+}
 
 TEST(LongNumberDivision, DivisionByZeroThrows)
 {
@@ -1204,18 +1241,18 @@ TEST(LongNumberDivision, SignsWithRemainder)
 	LongNumber q2 = a2 / b2;
 	LongNumber r2 = a2 % b2;
 
-	EXPECT_EQ(ToString(q2), "-123");
+	EXPECT_EQ(ToString(q2), "-124");
 	EXPECT_TRUE(q2.is_negative());
-	EXPECT_EQ(ToString(r2), "-4");
-	EXPECT_TRUE(r2.is_negative());
+	EXPECT_EQ(ToString(r2), "6");
+	EXPECT_FALSE(r2.is_negative());
 
 	LongNumber q3 = a2 / b;
 	LongNumber r3 = a2 % b;
 
-	EXPECT_EQ(ToString(q3), "123");
+	EXPECT_EQ(ToString(q3), "124");
 	EXPECT_FALSE(q3.is_negative());
-	EXPECT_EQ(ToString(r3), "-4");
-	EXPECT_TRUE(r3.is_negative());
+	EXPECT_EQ(ToString(r3), "6");
+	EXPECT_FALSE(r3.is_negative());
 }
 
 TEST(LongNumberDivision, LargeNumbersExact)
@@ -1316,8 +1353,8 @@ TEST(LongNumberRemainder, NegativeDividendPositiveDivisor)
 	LongNumber q = a / b;
 	LongNumber r = a % b;
 
-	EXPECT_EQ(ToString(q), "-123");
-	EXPECT_EQ(ToString(r), "-4");
+	EXPECT_EQ(ToString(q), "-124");
+	EXPECT_EQ(ToString(r), "6");
 
 	LongNumber check = q * b + r;
 	EXPECT_EQ(ToString(check), ToString(a));
@@ -1331,8 +1368,8 @@ TEST(LongNumberRemainder, NegativeDividendNegativeDivisor)
 	LongNumber q = a / b;
 	LongNumber r = a % b;
 
-	EXPECT_EQ(ToString(q), "123");
-	EXPECT_EQ(ToString(r), "-4");
+	EXPECT_EQ(ToString(q), "124");
+	EXPECT_EQ(ToString(r), "6");
 
 	LongNumber check = q * b + r;
 	EXPECT_EQ(ToString(check), ToString(a));

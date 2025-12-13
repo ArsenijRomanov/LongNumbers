@@ -220,17 +220,7 @@ LongNumber &LongNumber::operator=(const LongNumber &x)
 	if (this == &x)
 		return *this;
 
-	int *new_numbers = new int[x.length];
-	for (int i = 0; i < x.length; ++i)
-		new_numbers[i] = x.numbers[i];
-
-	delete[] numbers;
-
-	numbers = new_numbers;
-	length = x.length;
-	sign = x.sign;
-
-	return *this;
+	return *this = LongNumber(x);
 }
 
 LongNumber &LongNumber::operator=(LongNumber &&x)
@@ -341,102 +331,66 @@ LongNumber LongNumber::operator+(const LongNumber &x) const
 // Как реализовать по-другому? Намного проще?
 LongNumber LongNumber::operator-(const LongNumber &x) const
 {
-	if (*this == x)
-		return LongNumber();
+    if (*this == x)
+        return LongNumber();
 
-	if (sign == 1 && x.sign == -1)
-	{
-		auto addend = x;
-		addend.sign = 1;
-		return *this + addend;
-	}
+    if (sign != x.sign)
+    {
+        LongNumber temp = x;
+        temp.sign = sign;
+        return *this + temp;
+    }
 
-	else if (sign == -1 && x.sign == 1)
-	{
-		auto addend = x;
-		addend.sign = -1;
-		return *this + addend;
-	}
+    if ((sign == 1 && *this < x) || (sign == -1 && *this > x))
+    {
+        LongNumber res = x - *this;
+        res.sign = -res.sign;
+        return res;
+    }
 
-	LongNumber minuend;
-	LongNumber subtrahend;
-	int difference_sign;
+    int len = length;
+    int* res_numbers = new int[len];
 
-	if (sign == 1)
-	{
-		if (*this > x)
-		{
-			minuend = *this;
-			subtrahend = x;
-			difference_sign = 1;
-		}
+    int carry = 0;
+    for (int i = 0; i < len; ++i)
+    {
+        int val1 = numbers[i];
+        int val2 = (i < x.length) ? x.numbers[i] : 0;
 
-		else
-		{
-			minuend = x;
-			subtrahend = *this;
-			difference_sign = -1;
-		}
-	}
-	else
-	{
-		if (*this < x)
-		{
-			minuend = *this;
-			subtrahend = x;
-			difference_sign = -1;
-		}
+        int diff = val1 - val2 - carry;
 
-		else
-		{
-			minuend = x;
-			subtrahend = *this;
-			difference_sign = 1;
-		}
-	}
+        if (diff < 0)
+        {
+            diff += 10;
+            carry = 1;
+        }
+        else
+            carry = 0;
+        res_numbers[i] = diff;
+    }
 
-	int *difference = new int[minuend.length];
+    int real_len = len;
+    while (real_len > 1 && res_numbers[real_len - 1] == 0)
+        real_len--;
 
-	int carry = 0;
-	for (int i = 0; i < minuend.length; ++i)
-	{
-		int first = minuend.numbers[i];
-		int second = (i < subtrahend.length) ? subtrahend.numbers[i] : 0;
+    LongNumber result;
+    delete[] result.numbers;
 
-		int res = first - (second + carry);
-		if (res < 0)
-		{
-			res += 10;
-			carry = 1;
-		}
-		else
-			carry = 0;
+    if (real_len == len)
+    {
+        result.numbers = res_numbers;
+    }
+    else
+    {
+        result.numbers = new int[real_len];
+        std::copy(res_numbers, res_numbers + real_len, result.numbers);
+        delete[] res_numbers;
+    }
 
-		difference[i] = res;
-	}
+    result.length = real_len;
+    result.sign = sign;
 
-	int leading_zeros_cnt = 0;
-	for (int i = minuend.length - 1; i > 0; --i)
-	{
-		if (difference[i] != 0)
-			break;
-		++leading_zeros_cnt;
-	}
-
-	int total_length = minuend.length - leading_zeros_cnt;
-
-	LongNumber result;
-	delete[] result.numbers;
-
-	result.numbers = new int[total_length];
-	for (int i = 0; i < total_length; ++i)
-		result.numbers[i] = difference[i];
-	delete[] difference;
-
-	result.length = total_length;
-	result.sign = difference_sign;
-
-	return result;
+    return result;
 }
 
 LongNumber LongNumber::operator*(const LongNumber &x) const
@@ -494,90 +448,81 @@ LongNumber LongNumber::operator*(const LongNumber &x) const
 
 LongNumber LongNumber::operator/(const LongNumber &x) const
 {
-	LongNumber zero;
+    LongNumber zero;
 
-	if (x == zero)
-	{
-		throw std::invalid_argument("division by zero");
-	}
+    if (x == zero)
+       throw std::invalid_argument("division by zero");
 
-	if (*this == zero)
-	{
-		return zero;
-	}
+    if (*this == zero)
+       return zero;
 
-	LongNumber dividend = *this;
-	LongNumber divisor = x;
-	dividend.sign = 1;
-	divisor.sign = 1;
+    LongNumber dividend = *this;
+    LongNumber divisor = x;
+    dividend.sign = 1;
+    divisor.sign = 1;
 
-	if (dividend < divisor)
-	{
-		return zero;
-	}
+    int max_q_len = length - x.length + 1;
+    if (max_q_len < 0) max_q_len = 0;
 
-	if (divisor == LongNumber("1"))
-	{
-		LongNumber result = dividend;
-		result.sign = (sign == x.sign ? 1 : -1);
-		return result;
-	}
+    int *res_numbers = new int[max_q_len > 0 ? max_q_len : 1]{};
 
-	int max_q_len = length - x.length + 1;
-	int *res_numbers = new int[max_q_len]{};
+    while (dividend > divisor || dividend == divisor)
+    {
+       int length_dif = dividend.length - divisor.length;
+       LongNumber sub_base = divisor * TenPow(length_dif);
 
-	while (dividend > divisor || dividend == divisor)
-	{
-		int length_dif = dividend.length - divisor.length;
-		LongNumber sub_base = divisor * TenPow(length_dif);
+       if (dividend < sub_base)
+       {
+          --length_dif;
+          sub_base = divisor * TenPow(length_dif);
+       }
 
-		if (dividend < sub_base)
-		{
-			--length_dif;
-			sub_base = divisor * TenPow(length_dif);
-		}
+       int digit = 0;
+       for (int d = 1; d <= 9; ++d)
+       {
+          LongNumber prod = sub_base * LongNumber(std::to_string(d).c_str());
+          if (prod > dividend)
+             break;
 
-		int digit = 0;
-		for (int d = 1; d <= 9; ++d)
-		{
-			LongNumber prod = sub_base * LongNumber(std::to_string(d).c_str());
-			if (prod > dividend)
-			{
-				break;
-			}
-			digit = d;
-		}
+          digit = d;
+       }
 
-		LongNumber prod = sub_base * LongNumber(std::to_string(digit).c_str());
-		dividend = dividend - prod;
-		res_numbers[length_dif] += digit;
-	}
+       LongNumber prod = sub_base * LongNumber(std::to_string(digit).c_str());
+       dividend = dividend - prod;
+       res_numbers[length_dif] += digit;
+    }
 
-	int total_length = max_q_len;
-	while (total_length > 1 && res_numbers[total_length - 1] == 0)
-	{
-		--total_length;
-	}
+    int total_length = max_q_len;
+    while (total_length > 1 && res_numbers[total_length - 1] == 0)
+       --total_length;
 
-	LongNumber res;
-	delete[] res.numbers;
+    LongNumber res;
+    delete[] res.numbers;
 
-	res.numbers = new int[total_length];
-	for (int i = 0; i < total_length; ++i)
-	{
-		res.numbers[i] = res_numbers[i];
-	}
-	delete[] res_numbers;
+    if (total_length <= 0) total_length = 1;
 
-	res.length = total_length;
-	res.sign = (sign == x.sign ? 1 : -1);
+    res.numbers = new int[total_length];
+    for (int i = 0; i < total_length; ++i)
+       res.numbers[i] = res_numbers[i];
+    delete[] res_numbers;
 
-	if (res.length == 1 && res.numbers[0] == 0)
-	{
-		res.sign = 1;
-	}
+    res.length = total_length;
+    res.sign = (sign == x.sign ? 1 : -1);
 
-	return res;
+    if (res.length == 1 && res.numbers[0] == 0)
+       res.sign = 1;
+
+
+    if (sign == -1 && dividend != zero)
+    {
+       LongNumber one("1");
+       if (x.sign == 1)
+          res = res - one;
+       else
+          res = res + one;
+    }
+
+    return res;
 }
 
 LongNumber LongNumber::operator%(const LongNumber &x) const
